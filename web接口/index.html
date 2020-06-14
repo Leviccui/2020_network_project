@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueTrace</title>
+    <script type="text/javascript" src="jquery-3.5.0.min.js"></script>
+    <script src = "my_db.js"></script>
+    <style type="text/css">
+        body { background: #eee;}
+
+        h1 { font-size: 24px; color: #333;  margin-bottom: 20px;}
+        h2 { font-size: 50px; color: #333;  margin-bottom: 20px;}
+        p { font-size: 18px; font-weight: lighter; color: #676767; margin-bottom: 20px;}
+        a { font-size: 18px; color: #185bda;}
+
+        div.title{position: relative; left: 25%; width: 50%;}
+        div.title>h2{position: relative; left: 38%;}
+        div.title>p{position: relative; left: 41%;}
+
+        form.root { position: relative; max-width: 800px; background: #fafafa; margin: 40px auto 60px;}
+        .label { color: #9e9e9e; font-weight: normal; font-size: 18px; border-bottom: 1px solid #e1e1e1; } 
+        input[type=radio] { display: none;}
+        input[type=radio]:not(checked) ~ .content { display: none;}
+        input[type=radio]:checked ~ .content { display: block;}
+        input[type=radio]:checked ~ .label { color: #185bda;}
+
+        /* Active state and bars */
+        input[type=radio]:checked + .first-label::before { content: ''; position: absolute; height: 2px; width: 100%; background: #185bda; bottom: -2px; right: 0; transition: right 20ms;} 
+        input[type=radio]:not(checked) + .first-label::before { content: ''; width: 0; left: 0%; transition: left 20ms;}
+        input[type=radio]:checked + .second-label::before { content: ''; position: absolute; height: 2px; width: 100%; background: #185bda; bottom: -2px; left: 0; transition: left 20ms;}
+        input[type=radio]:not(checked) + .second-label::before { content: ''; width: 0; left: -100%; transition: left 20ms;}
+        input[type=radio]:checked + .third-label::before { content: ''; position: absolute; height: 2px; width: 100%; background: #185bda; bottom: -2px; left: 0; transition: left 20ms;}
+        input[type=radio]:not(checked) + .third-label::before { content: ''; width: 0; left: -100%; transition: left 20ms;}
+        input[type=radio]:checked + .fourth-label::before { content: ''; position: absolute; height: 2px; width: 100%; background: #185bda; bottom: -2px; left: 0; transition: left 20ms;}
+        input[type=radio]:not(checked) + .fourth-label::before { content: ''; width: 0; left: -100%; transition: left 20ms;}
+        input[type=radio]:checked + .fifth-label::before { content: ''; position: absolute; height: 2px; width: 100%; background: #185bda; bottom: -2px; left: 0; transition: left 20ms;}
+        input[type=radio]:not(checked) + .fifth-label::before { content: ''; width: 0; left: -100%; transition: left 20ms;}
+
+        input[type=radio] + .first-label:hover, 
+        input[type=radio] + .second-label:hover,
+        input[type=radio] + .third-label:hover,
+        input[type=radio] + .fourth-label:hover,
+        input[type=radio] + .fifth-label:hover { color: #185bda; background: #e6e6e6;}
+
+        .first-label, .second-label, .third-label, .fourth-label, .fifth-label { position: absolute; top: 0; padding: 12px 10px; width: 150px; text-align: center; background: #fafafa; z-index: 999;}
+        .first-label { left: 0;}
+        .second-label { left: 150px;}
+        .third-label { left: 300px;}
+        .fourth-label { left: 450px;}
+        .fifth-label { left: 600px;}
+
+        .content { position: relative; top: 60px; padding: 40px 20px; margin: 0 auto; box-sizing: border-box;}
+        .result { margin: 0 auto; max-width: 800px; border-top: 1px solid #e1e1e1; padding: 20px;}
+
+        canvas{
+            position: relative;
+            left: 15%;
+        }
+
+        .specification{
+            position: relative;
+            width: 70%;
+            left: 15%;
+        }
+
+        .group { 
+            position: relative; 
+            margin-bottom: 45px; 
+            width: 70%;
+            left: 15%;
+        }
+
+        input {
+            font-size: 18px;
+            padding: 10px 10px 10px 5px;
+            -webkit-appearance: none;
+            display: block;
+            background: #fafafa;
+            color: #636363;
+            width: 100%;
+            border: none;
+            border-radius: 0;
+            border-bottom: 1px solid #757575;
+        }
+
+        input:focus { outline: none; }
+
+
+        /* Label */
+
+        label.name {
+            color: #999; 
+            font-size: 18px;
+            font-weight: normal;
+            position: absolute;
+            pointer-events: none;
+            left: 5px;
+            top: 10px;
+            transition: all 0.2s ease;
+        }
+
+
+        /* active */
+
+        input:focus ~ label, input.used ~ label {
+            top: -20px;
+            transform: scale(.75); left: -2px;
+            /* font-size: 14px; */
+            color: #4a89dc;
+        }
+
+
+        /* Underline */
+
+        .bar {
+            position: relative;
+            display: block;
+            width: 103%;
+        }
+
+        .bar:before, .bar:after {
+            content: '';
+            height: 2px; 
+            width: 0;
+            bottom: 1px; 
+            position: absolute;
+            background: #4a89dc; 
+            transition: all 0.2s ease;
+        }
+
+        .bar:before { left: 50%; }
+
+        .bar:after { right: 50%; }
+
+
+        /* active */
+
+        input:focus ~ .bar:before, input:focus ~ .bar:after { width: 50%; }
+
+
+        /* Highlight */
+
+        .highlight {
+            position: absolute;
+            height: 60%; 
+            width: 100px; 
+            top: 25%; 
+            left: 0;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+
+        /* active */
+
+        input:focus ~ .highlight {
+            animation: inputHighlighter 0.3s ease;
+        }
+
+
+        /* Animations */
+
+        @keyframes inputHighlighter {
+            from { background: #4a89dc; }
+            to 	{ width: 0; background: transparent; }
+        }
+
+        .button {
+            position: relative;
+            display: inline-block;
+            padding: 12px 24px;
+            margin: .3em 0 1em 0;
+            width: 50%;
+            left: 25%;
+            vertical-align: middle;
+            color: #fff;
+            font-size: 16px;
+            line-height: 20px;
+            -webkit-font-smoothing: antialiased;
+            text-align: center;
+            letter-spacing: 1px;
+            background: transparent;
+            border: 0;
+            border-bottom: 2px solid #3160B6;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .button:focus { outline: 0; }
+
+        .buttonBlue {
+            background: #4a89dc;
+            text-shadow: 1px 1px 0 rgba(39, 110, 204, .5);
+        }
+
+        .buttonBlue:hover { background: #357bd8; }
+
+
+        /* Ripples container */
+
+        .ripples {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+        }
+
+
+        /* Ripples circle */
+
+        .ripplesCircle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .ripples.is-active .ripplesCircle {
+            animation: ripples .4s ease-in;
+        }
+
+
+        /* Ripples animation */
+
+        @keyframes ripples {
+            0% { opacity: 0; }
+
+            25% { opacity: 1; }
+
+            100% {
+                width: 200%;
+                padding-bottom: 200%;
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <script>
+        $(window, document, undefined).ready(function() {
+            $('input').blur(function() {
+            var $this = $(this);
+            if ($this.val())
+                $this.addClass('used');
+            else
+                $this.removeClass('used');
+            });
+
+            var $ripples = $('.ripples');
+
+            $ripples.on('click.Ripples', function(e) {
+
+            var $this = $(this);
+            var $offset = $this.parent().offset();
+            var $circle = $this.find('.ripplesCircle');
+
+            var x = e.pageX - $offset.left;
+            var y = e.pageY - $offset.top;
+
+            $circle.css({
+                top: y + 'px',
+                left: x + 'px'
+            });
+
+            $this.addClass('is-active');
+
+            });
+
+            $ripples.on('animationend webkitAnimationEnd mozAnimationEnd oanimationend MSAnimationEnd', function(e) {
+                $(this).removeClass('is-active');
+            });
+
+            });
+    </script>
+</head>
+
+<body>
+    <div class="title">
+        <h2>BlueTrace</h2>
+        <p>室内蓝牙轨迹追踪小工具</p>
+    </div>
+
+    <form class="root">
+        <label for="pehlalabel">
+            <input id="pehlalabel" type="radio" name="tab" value="pehlalabel" checked>
+            <div class="label first-label">点对点</div>
+            <div class="content" id="content1">
+                <div class="specification">
+                    <p>     查询macA和macB在start time和end time之间有没有近距离接触（相隔10米以内），若有则输出接触时间段，否则输出Safe。</p>
+                </div>
+
+                <div class="group">
+                    <input type="text" name="macA" required="required"/>
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>macA</label>
+                </div>
+
+                <div class="group">
+                    <input type="text" name='macB' required="required"/>
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>macB</label>
+                </div>
+                
+                <div class="group">
+                    <input type="text" name="start_time" required="required">
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>start time</label>
+                </div>
+
+                <div class="group">
+                    <input type="text" name="end_time" required="required">
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>end time</label>
+                </div>
+
+                <button onClick="JavaScript:query1()" type="button" class="button buttonBlue">
+                    查询
+                    <div class="ripples buttonRipples">
+                        <span class="ripplesCircle">
+                        </span>
+                    </div>
+                </button>
+            </div>
+        </label>
+        
+        <label for="dusralabel">
+            <input id="dusralabel" type="radio" name="tab" value="dusralabel">
+            <div class="label second-label">批量</div>
+            <div class="content" id="content2">
+                <div class="specification">
+                    <p>     查询该mac地址所对应的设备在最近10分钟内是否和其他设备接触，若有则输出有过接触的mac地址，否则输出safe</p> 
+                </div>
+
+                <div class="group">
+                    <input type="text" name="mac" required="required"/>
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>mac</label>
+                </div>
+
+                <button onclick="JavaScript:query2()" type="button" class="button buttonBlue">
+                    查询
+                    <div class="ripples buttonRipples">
+                        <span class="ripplesCircle">
+                        </span>
+                    </div>
+                </button>
+            </div>
+        </label>
+        
+        <label for="tisralabel">
+            <input id="tisralabel" type="radio" name="tab" value="tisralabel">
+            <div class="label third-label">rssi-时间段</div>
+            <div class="content" id="content3">
+                <div class="specification">
+                    <p>     查询第level层楼从start time到end time之间所有Device的位置,并可视化,limit表示最多多少条记录,level只支持7。
+                    </p> 
+                </div>
+
+                <div class="group">
+                    <input type="text" name="limit" required="required"/>
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>limit</label>
+                </div>
+
+                <div class="group">
+                    <input type="text" name='level' required="required"/>
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>level</label>
+                </div>
+                
+                <div class="group">
+                    <input type="text" name="rssi" required="required">
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>rssi</label>
+                </div>
+
+                <div class="group">
+                    <input type="text" name="start time" required="required">
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>start time</label>
+                </div>
+
+                <div class="group">
+                    <input type="text" name="end time" required="required">
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>end time</label>
+                </div>
+
+                <button onClick="JavaScript:query3()" type="button" class="button buttonBlue">
+                    查询
+                    <div class="ripples buttonRipples">
+                        <span class="ripplesCircle">
+                        </span>
+                    </div>
+                </button>
+            </div>
+        </label>
+
+        <label for="chauthalabel">
+            <input id="chauthalabel" type="radio" name="tab" value="chauthalabel">
+            <div class="label fourth-label">活跃mac</div>
+            <div class="content" id="content4">
+                <div class="specification">
+                    <p>查询最近10分钟7层活跃的设备的mac</p> 
+                </div>
+                <!--
+                    <div class="group">
+                    <input type="text" name='level' required="required"/>
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>level</label>
+                </div>
+                -->
+
+                
+                <button onClick="JavaScript:query4()" type="button" class="button buttonBlue">
+                    查询
+                    <div class="ripples buttonRipples">
+                        <span class="ripplesCircle">
+                        </span>
+                    </div>
+                </button>
+            </div>
+        </label>
+
+        <label for="panchwalabel">
+            <input id="panchwalabel" type="radio" name="tab" value="panchwalabel">
+            <div class="label fifth-label">轨迹</div>
+            <div class="content" id="content5">
+                <div class="specification">
+                    <p>查询mac对应设备从start time到end time的轨迹</p> 
+                </div>
+
+                <div class="group">
+                    <input type="text" name="mac" required="required"/>
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>mac</label>
+                </div>
+                
+                <div class="group">
+                    <input type="text" name="start_time" required="required">
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>start time</label>
+                </div>
+
+                <div class="group">
+                    <input type="text" name="end_time" required="required">
+                    <span class="highlight"></span>
+                    <span class="bar"></span>
+                    <label class=name>end time</label>
+                </div>
+
+                <button onClick="JavaScript:query5()" type="button" class="button buttonBlue">
+                    查询
+                    <div class="ripples buttonRipples">
+                        <span class="ripplesCircle">
+                        </span>
+                    </div>
+                </button>
+            </div>
+        </label>
+    </form>
+    
+    <form class="root">
+        <div class="result">
+            <div id="myText">
+                <h1>Results</h1>
+                <p></p>
+            </div>
+        <canvas id="myCanvas" width="800" height="600">
+        </canvas>
+        </div>
+    </form>
+</body>
+
+</html>
